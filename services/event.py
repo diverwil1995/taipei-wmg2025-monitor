@@ -1,5 +1,6 @@
 import logging
-from typing import Optional, List
+import re
+from typing import Optional, List, Union
 from datetime import datetime
 import pytz
 import time
@@ -40,7 +41,7 @@ def get_page_content(driver):
         logger.error(f"獲取頁面失敗: {str(e)}", exc_info=True)
         return None
 
-def parse_event(html_content: str, target_event: Optional[str] = None, target_date: Optional[str] = None) -> Optional[EventStatus]:
+def parse_event(html_content: str, target_event: Optional[str] = None, target_date: Optional[str] = None) -> Optional[Union[EventStatus, List[EventStatus]]]:
     """解析課程資訊
     
     Args:
@@ -51,6 +52,14 @@ def parse_event(html_content: str, target_event: Optional[str] = None, target_da
     if not html_content:
         return None
         
+    # 驗證日期格式
+    if target_date:
+        try:
+            datetime.strptime(target_date, "%Y/%m/%d")
+        except ValueError:
+            logger.error(f"目標日期格式錯誤: {target_date}")
+            return None
+            
     soup = BeautifulSoup(html_content, 'html.parser')
     cards = soup.find_all('div', class_='activity-card')
     
@@ -66,11 +75,20 @@ def parse_event(html_content: str, target_event: Optional[str] = None, target_da
             location = card.find('h3').find('span').text.strip()
             event_date = card.find('h4').text.strip()
             
-            # 如果指定了日期且不匹配，則跳過
+            # 使用正則表達式提取日期
             if target_date:
-                event_date_str = event_date.split(' ')[0]  # 提取日期部分
-                if event_date_str != target_date:
+                date_pattern = r"活動日期：(\d{4}/\d{2}/\d{2})"
+                match = re.search(date_pattern, event_date)
+                if not match:
+                    logger.warning(f"無法從 {event_date} 提取日期")
                     continue
+                    
+                extracted_date = match.group(1)
+                if extracted_date != target_date:
+                    continue
+            
+            # 清理日期字串中的換行和多餘空格
+            event_date = ' '.join(event_date.split())
             
             reg_start = card.find_all('h4')[1].text.strip()
             reg_end = card.find_all('h4')[2].text.strip()
@@ -88,7 +106,8 @@ def parse_event(html_content: str, target_event: Optional[str] = None, target_da
                 status=status,
                 last_checked=datetime.now(pytz.timezone('Asia/Taipei')).strftime('%Y-%m-%d %H:%M:%S')
             )
-            # 如果指定了特定課程，直接返回匹配的結果
+            
+            # 如果指定了特定課程和日期，直接返回匹配的結果
             if target_event and target_date:
                 return event
             events.append(event)
@@ -97,8 +116,8 @@ def parse_event(html_content: str, target_event: Optional[str] = None, target_da
             logger.error(f"解析活動卡片失敗: {str(e)}")
             continue
     
-    # 如果指定了特定課程但沒找到，返回None
-    if target_event or target_date:
+    # 如果指定了搜尋條件但沒找到，返回None
+    if (target_event or target_date) and not events:
         return None
         
     # 返回所有找到的課程

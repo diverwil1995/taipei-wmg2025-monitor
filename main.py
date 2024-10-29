@@ -44,7 +44,7 @@ async def send_telegram_message(message: str):
                 "parse_mode": "HTML"
             })
             response.raise_for_status()
-            logger.info("Telegram 通知發送成功")
+            logger.debug("Telegram 通知發送成功")
         except Exception as e:
             logger.error(f"Telegram 通知發送失敗: {str(e)}")
 
@@ -97,7 +97,7 @@ async def check_event():
 @app.on_event("startup")
 async def startup_event():
     """啟動排程器"""
-    scheduler.add_job(check_event, 'interval', seconds=60, id='check_event')
+    scheduler.add_job(check_event, 'interval', seconds=300, id='check_event')
     scheduler.start()
     logger.info("排程器已啟動")
 
