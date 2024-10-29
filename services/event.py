@@ -88,7 +88,6 @@ def parse_event(html_content: str, target_event: Optional[str] = None, target_da
                 status=status,
                 last_checked=datetime.now(pytz.timezone('Asia/Taipei')).strftime('%Y-%m-%d %H:%M:%S')
             )
-            
             # 如果指定了特定課程，直接返回匹配的結果
             if target_event and target_date:
                 return event

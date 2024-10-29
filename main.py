@@ -14,7 +14,7 @@ from config import Settings, TARGET_URL
 
 # 設定日誌
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -72,23 +72,23 @@ async def check_event():
         # 遍歷所有事件
         for event in events:
             if event.status == "開放報名" and event.name not in notified_events:
+                clean_date = ' '.join(event.event_date.split())
                 message = f"""
 🎯 <b>課程報名開放通知！</b>
 
-課程名稱: {event.name}
-活動地點: {event.location}
-活動日期: {event.event_date}
-報名期間: {event.registration_start} 至 {event.registration_end}
-目前狀態: ⭐ 開放報名中 ⭐
+課程名稱：{event.name}
+活動地點：{event.location}
+{clean_date}
+目前狀態：⭐ 開放報名中 ⭐
 
 快去報名吧！
-🔗 報名連結: {TARGET_URL}
+🔗 報名連結：{TARGET_URL}
 """
                 await send_telegram_message(message)
                 notified_events.add(event.name)
                 logger.info(f"發送通知: {event.name} 開放報名")
             else:
-                logger.info(f"課程狀態: {event.name} - {event.status}")
+                logger.info(f"課程狀態: {event.name} - {clean_date} - {event.status}")
                 
     finally:
         if driver:
