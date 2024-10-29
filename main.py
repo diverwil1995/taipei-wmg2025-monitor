@@ -63,10 +63,16 @@ async def check_event():
             cookie_manager.clear_cookies()
             return
             
-        event = parse_event(html_content)
+        events = parse_event(html_content)
         
-        if event and event.status == "開放報名" and event.name not in notified_events:
-            message = f"""
+        if not events:
+            logger.warning("未找到任何課程")
+            return
+
+        # 遍歷所有事件
+        for event in events:
+            if event.status == "開放報名" and event.name not in notified_events:
+                message = f"""
 🎯 <b>課程報名開放通知！</b>
 
 課程名稱: {event.name}
@@ -78,14 +84,12 @@ async def check_event():
 快去報名吧！
 🔗 報名連結: {TARGET_URL}
 """
-            await send_telegram_message(message)
-            notified_events.add(event.name)
-            logger.info(f"發送通知: {event.name} 開放報名")
-        
-        elif event:
-            logger.info(f"課程狀態: {event.name} - {event.status}")
-        else:
-            logger.warning("未找到目標課程")
+                await send_telegram_message(message)
+                notified_events.add(event.name)
+                logger.info(f"發送通知: {event.name} 開放報名")
+            else:
+                logger.info(f"課程狀態: {event.name} - {event.status}")
+                
     finally:
         if driver:
             driver.quit()
@@ -93,7 +97,7 @@ async def check_event():
 @app.on_event("startup")
 async def startup_event():
     """啟動排程器"""
-    scheduler.add_job(check_event, 'interval', seconds=300, id='check_event')
+    scheduler.add_job(check_event, 'interval', seconds=60, id='check_event')
     scheduler.start()
     logger.info("排程器已啟動")
 
