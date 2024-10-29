@@ -3,3 +3,6 @@
 __pycache__/
 *.pyc
 wmg-env
+downloaded_captchas
+temp_captcha
+.DS_Store
