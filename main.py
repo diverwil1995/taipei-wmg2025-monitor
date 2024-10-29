@@ -19,6 +19,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# 關閉 hhtpx 的 INFO 日誌
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 # 設定 tesseract 路徑
 TESSERACT_CMD = '/opt/homebrew/bin/tesseract'
 if os.path.exists(TESSERACT_CMD):
@@ -86,7 +89,7 @@ async def check_event():
 """
                 await send_telegram_message(message)
                 notified_events.add(event.name)
-                logger.info(f"發送通知: {event.name} 開放報名")
+                logger.debug(f"發送通知: {event.name} 開放報名")
             else:
                 logger.info(f"課程狀態: {event.name} - {clean_date} - {event.status}")
                 
@@ -97,7 +100,7 @@ async def check_event():
 @app.on_event("startup")
 async def startup_event():
     """啟動排程器"""
-    scheduler.add_job(check_event, 'interval', seconds=300, id='check_event')
+    scheduler.add_job(check_event, 'interval', seconds=30, id='check_event')
     scheduler.start()
     logger.info("排程器已啟動")
 
